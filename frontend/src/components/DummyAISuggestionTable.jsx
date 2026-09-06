@@ -1,5 +1,10 @@
 import React from "react";
 import DummyAISuggestionRow from "./DummyAISuggestionRow";
+import {
+  DEFAULT_LOGIC_1,
+  DEFAULT_LOGIC_2,
+  DEFAULT_LOGIC_3,
+} from "../utils/dummyAiSuggestionEngine";
 
 const DummyAISuggestionTable = ({ data, loading, onApplySuggestion, updatingSuggestionId, rowPatterns, onPatternChange, rowSecondaryPatterns, onSecondaryPatternChange, rowTertiaryPatterns, onTertiaryPatternChange, updatingScheduleId, onUpdateSchedule }) => {
   if (loading) {
@@ -17,9 +22,9 @@ const DummyAISuggestionTable = ({ data, loading, onApplySuggestion, updatingSugg
               <th className="p-3 text-left font-semibold text-gray-800">Delivery_Gap</th>
               <th className="p-3 text-left font-semibold text-gray-800">Current Category</th>
               <th className="p-3 text-left font-semibold text-gray-800">Current Toggle</th>
-              <th className="p-3 text-left font-semibold text-gray-800">Primary Logic</th>
-              <th className="p-3 text-left font-semibold text-gray-800">Secondary Logic</th>
-              <th className="p-3 text-left font-semibold text-gray-800">Tertiary Logic</th>
+              <th className="p-3 text-left font-semibold text-gray-800">Purchase Cadence</th>
+              <th className="p-3 text-left font-semibold text-gray-800">Customer State</th>
+              <th className="p-3 text-left font-semibold text-gray-800">Purchase Intent</th>
               <th className="p-3 text-left font-semibold text-gray-800">AI Suggestion</th>
               <th className="p-3 text-left font-semibold text-gray-800">Apply AI Suggestion</th>
               <th className="p-3 text-left font-semibold text-gray-800">Execution Calendar</th>
@@ -62,23 +67,23 @@ const DummyAISuggestionTable = ({ data, loading, onApplySuggestion, updatingSugg
   return (
     <div className="w-full overflow-x-auto">
       <table className="w-full text-xs table-auto border-collapse min-w-[1150px]">
-          <thead className="bg-gray-50 border-b border-gray-100">
+          <thead className="bg-gray-50 border-b border-gray-100 text-xs">
             <tr>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Customer ID</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight min-w-[90px]">Customer Name</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Customer<br/>ID</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight min-w-[90px]">Customer<br/>Name</th>
               <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight max-w-[130px]">Route</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Weekly Schedule</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Peak Potential</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Peak Frequency</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Delivery Gap</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Current Category</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Current Toggle</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight min-w-[122px]">Primary Logic</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight min-w-[122px]">Secondary Logic</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight min-w-[122px]">Tertiary Logic</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">AI Suggestion</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Apply AI Suggestion</th>
-              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Execution Calendar</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Weekly<br/>Schedule</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Peak<br/>Potential</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Peak<br/>Frequency</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Delivery<br/>Gap</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Current<br/>Category</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Current<br/>Toggle</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight min-w-[122px]">Purchase Cadence</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight min-w-[122px]">Customer State</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight min-w-[122px]">Purchase Intent</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">AI<br/>Suggestion</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Apply AI<br/>Suggestion</th>
+              <th className="px-1.5 py-2 text-center font-semibold text-gray-800 leading-tight">Execution<br/>Calendar</th>
             </tr>
           </thead>
           <tbody>
@@ -89,11 +94,11 @@ const DummyAISuggestionTable = ({ data, loading, onApplySuggestion, updatingSugg
                 suggestionData={item.suggestion}
                 onApplySuggestion={onApplySuggestion}
                 isUpdating={updatingSuggestionId === item.customer.id}
-                customerPattern={rowPatterns[item.customer.id] || "UnAssigned"}
+                customerPattern={rowPatterns[item.customer.id] || DEFAULT_LOGIC_1}
                 onPatternChange={onPatternChange}
-                secondaryPattern={rowSecondaryPatterns[item.customer.id] || "UnAssigned"}
+                secondaryPattern={rowSecondaryPatterns[item.customer.id] || DEFAULT_LOGIC_2}
                 onSecondaryPatternChange={onSecondaryPatternChange}
-                tertiaryPattern={rowTertiaryPatterns[item.customer.id] || "UnAssigned"}
+                tertiaryPattern={rowTertiaryPatterns[item.customer.id] || DEFAULT_LOGIC_3}
                 onTertiaryPatternChange={onTertiaryPatternChange}
                 updatingScheduleId={updatingScheduleId}
                 onUpdateSchedule={onUpdateSchedule}

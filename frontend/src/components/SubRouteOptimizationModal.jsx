@@ -2,7 +2,6 @@ import React, { useState, useMemo } from "react";
 import axios from "axios";
 import {
   FiX,
-  FiZap,
   FiCheck,
   FiArrowRight,
   FiSearch,
@@ -124,15 +123,34 @@ export default function SubRouteOptimizationModal({
     D: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", badge: "bg-purple-600" },
   };
 
+  const getCurrentCategoryColor = (category) => {
+    const match = String(category || "").match(/^D(\d+)$/);
+    if (!match) return "#FF3B30";
+    const num = Number(match[1]);
+    if (!Number.isFinite(num)) return "#FF3B30";
+
+    if (num <= 2) return "#FF3B30"; // red: D0-D2
+    if (num <= 4) return "#FB8C00"; // yellow/orange: D3-D4
+    return "#0F9D58"; // green: D5-D7
+  };
+
+  const getDeliveryGapColor = (gap) => {
+    const match = String(gap || "").match(/^G?(\d+)$/);
+    if (!match) return "#FF3B30";
+    const num = Number(match[1]);
+    if (!Number.isFinite(num)) return "#FF3B30";
+
+    if (num === 0) return "#0F9D58"; // green: G0
+    if (num <= 2) return "#FB8C00"; // yellow/orange: G1-G2
+    return "#FF3B30"; // red: G3+
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* HEADER */}
-        <div className="p-4 sm:p-5 border-b border-gray-100 flex items-start justify-between gap-3 bg-gradient-to-r from-blue-50/50 via-indigo-50/30 to-white">
+        <div className="p-4 sm:p-5 border-b border-gray-100 flex items-start justify-between gap-3 bg-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20 flex-shrink-0">
-              <FiZap size={20} />
-            </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
                 Auto-Sort Customer Sub-Routes
@@ -332,19 +350,17 @@ export default function SubRouteOptimizationModal({
                           </span>
                         </td>
                         <td className="p-3 text-center">
-                          <span className="px-2 py-0.5 rounded font-extrabold text-[11px] bg-gray-100 text-gray-700">
+                          <span
+                            className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white shadow-xs"
+                            style={{ backgroundColor: getCurrentCategoryColor(item.category) }}
+                          >
                             {item.category}
                           </span>
                         </td>
                         <td className="p-3 text-center">
                           <span
-                            className={`px-2 py-0.5 rounded font-extrabold text-[11px] ${
-                              item.gap === "G0" || item.gap === "G1"
-                                ? "bg-emerald-100 text-emerald-800"
-                                : item.gap === "G7" || item.gap === "G8" || item.gap === "G9" || item.gap === "G10"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-purple-100 text-purple-800"
-                            }`}
+                            className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white shadow-xs"
+                            style={{ backgroundColor: getDeliveryGapColor(item.gap) }}
                           >
                             {item.gap}
                           </span>

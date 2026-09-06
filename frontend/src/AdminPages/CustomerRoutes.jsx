@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { FiUsers, FiMapPin, FiTarget, FiTrendingUp, FiEdit2, FiEye, FiChevronDown, FiChevronRight, FiZap, FiLayers } from "react-icons/fi";
+import { FiUsers, FiMapPin, FiTarget, FiTrendingUp, FiEdit2, FiEye, FiChevronDown, FiChevronRight, FiLayers } from "react-icons/fi";
 import { ADMIN_PATH } from "../constant";
 import { getCachedUserInfo, invalidateClientUserInfoCache } from "../utils/customerInfoClientCache";
 import SubRouteOptimizationModal from "../components/SubRouteOptimizationModal";
@@ -183,7 +183,7 @@ export default function CustomerRoutes() {
         routeMap[route].totalCustomers += 1;
 
         // Track D0-D7 Category Counts
-        const rawCategory = customer.category || customer.currentCategory || computeCurrentCategory(customer.last8Days);
+        const rawCategory = computeCurrentCategory(customer.last8Days);
         const categoryStr = normalizePeakFrequency(rawCategory);
         if (routeMap[route].categoryCounts[categoryStr] !== undefined) {
           routeMap[route].categoryCounts[categoryStr] += 1;
@@ -192,7 +192,7 @@ export default function CustomerRoutes() {
         }
 
         // Track Delivery Gap Counts
-        const rawGap = customer.deliveryGap || computeDeliveryGap(customer.last8Days, todayDate);
+        const rawGap = computeDeliveryGap(customer.last8Days, todayDate);
         const gapStr = normalizeDeliveryGap(rawGap);
         const gapNum = getDeliveryGapNumber(gapStr);
 
@@ -891,10 +891,9 @@ export default function CustomerRoutes() {
               <button
                 type="button"
                 onClick={() => setIsOptimizationModalOpen(true)}
-                className="text-[11px] font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-3 py-1 rounded-md shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                className="text-[11px] font-bold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-md shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                 title="Automatically reassign customers between sub-routes based on D-category and Delivery Gap"
               >
-                <FiZap size={12} className="text-amber-300" />
                 <span>Auto-Sort Sub-Routes</span>
                 {optimizationData.stats.totalChanges > 0 && (
                   <span className="ml-0.5 bg-amber-400 text-slate-900 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full">
@@ -1047,7 +1046,6 @@ export default function CustomerRoutes() {
                               }`}
                               title={`Assign delivery agent to all ${group.routes.length} sub-routes`}
                             >
-                              <FiZap size={11} className="text-amber-500" />
                               <span>Assign All</span>
                             </button>
                           </div>
@@ -1358,7 +1356,7 @@ export default function CustomerRoutes() {
                   <optgroup key={group.parentKey} label={`Route ${group.parentKey} (${group.routes.length} sub-routes)`}>
                     {group.routes.length > 1 && (
                       <option value={`PARENT:${group.parentKey}`} className="font-bold text-blue-700">
-                        ⚡ Assign All {group.parentKey} ({group.routes.length} sub-routes)
+                        Assign All {group.parentKey} ({group.routes.length} sub-routes)
                       </option>
                     )}
                     {group.routes.map((r) => (
@@ -1371,7 +1369,6 @@ export default function CustomerRoutes() {
               </select>
               {assignSelectedRoute.startsWith("PARENT:") && (
                 <div className="mt-1.5 p-1.5 bg-blue-50 border border-blue-200 rounded text-[11px] text-blue-700 font-semibold flex items-center gap-1">
-                  <FiZap size={12} className="text-amber-500 flex-shrink-0" />
                   <span>
                     Will assign all {groupedRoutes.find(g => g.parentKey === assignSelectedRoute.replace("PARENT:", ""))?.routes.length || 0} sub-routes of {assignSelectedRoute.replace("PARENT:", "")}!
                   </span>

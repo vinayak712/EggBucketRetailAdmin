@@ -28,11 +28,11 @@ export const extractParentRoute = (routeName) => {
  * - Route 1 D: Delivery Gap G10+ Customers Only
  */
 export function evaluateSubRouteTier(customer, todayDate) {
-  const rawGap = customer.deliveryGap || computeDeliveryGap(customer.last8Days, todayDate);
+  const rawGap = computeDeliveryGap(customer?.last8Days, todayDate);
   const gapStr = normalizeDeliveryGap(rawGap);
   const gapNum = getDeliveryGapNumber(gapStr);
 
-  const rawCategory = customer.currentCategory || customer.category || computeCurrentCategory(customer.last8Days);
+  const rawCategory = computeCurrentCategory(customer?.last8Days);
   const categoryStr = normalizePeakFrequency(rawCategory);
   const dNum = parseInt(categoryStr.replace("D", ""), 10) || 0;
 

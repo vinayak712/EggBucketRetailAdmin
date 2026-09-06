@@ -241,6 +241,27 @@ const monthEndException = (customer) => {
   };
 };
 
+const twoAlternateDayBuyer = (customer) => {
+  const today = new Date();
+  for (let i = 1; i <= 2; i++) {
+    const pastDate = new Date();
+    pastDate.setDate(today.getDate() - i);
+    const pastStr = getDateStringInTimeZone(pastDate, "Asia/Kolkata");
+    if (getDeliveryStatusForDate(customer, pastStr) === "delivered") {
+      return {
+        suggestion: "TURN_OFF_TODAY",
+        confidence: 100,
+        reason: `Delivery received ${i === 1 ? "yesterday" : "2 days ago"}. 2 Alternate Day pattern, skip today.`,
+      };
+    }
+  }
+  return {
+    suggestion: "TURN_ON_TODAY",
+    confidence: 100,
+    reason: "No delivery in the last 2 days. 2 Alternate Day pattern, send today.",
+  };
+};
+
 const churnBuyer = (customer) => {
   return {
     suggestion: "TURN_OFF_TODAY",
@@ -249,101 +270,171 @@ const churnBuyer = (customer) => {
   };
 };
 
-// --- Main Engine Function ---
+// --- Main Engine Logic Lists ---
+
+export const LOGIC_1_PURCHASE_CADENCE = [
+  "Learning (Always ON)",
+  "Everyday (Always ON)",
+  "Alternate Day",
+  "2 Alternate Day",
+  "Last WeekDay",
+  "No Pattern (Always ON)",
+];
+
+export const LOGIC_2_CUSTOMER_STATE = [
+  "Onboarding (Always ON)",
+  "Active (Always ON)",
+  "At Risk (Always ON)",
+  "Churn (Always OFF)",
+  "Reactivating (Always ON)",
+  "On Call (Always OFF)",
+  "Ceased Operations Temporarily (Always OFF)",
+  "Ceased Operations Permanently (Always OFF)",
+];
+
+export const LOGIC_3_PURCHASE_INTENT = [
+  "Unknown (Always ON)",
+  "Stable Purchase (Always ON)",
+  "Growing Purchase (Always On)",
+  "Declining Purchase (Always OFF)",
+  "Variable Purchase (Always ON)",
+];
+
+export const DEFAULT_LOGIC_1 = LOGIC_1_PURCHASE_CADENCE[0];
+export const DEFAULT_LOGIC_2 = LOGIC_2_CUSTOMER_STATE[0];
+export const DEFAULT_LOGIC_3 = LOGIC_3_PURCHASE_INTENT[0];
 
 export const BUYING_PATTERNS = [
-  "UnAssigned",
-  "Every Day Buyer",
-  "Alternate Day Buyer",
-  "Every Sunday Buyer",
-  "Every Monday Buyer",
-  "Every Tuesday Buyer",
-  "Every Wednesday Buyer",
-  "Every Thursday Buyer",
-  "Every Friday Buyer",
-  "Every Saturday Buyer",
-  "Last Weekday Buyer",
-  "Last Alternate Weekday Buyer",
-  "Sunday Exception",
-  "Monday Exception",
-  "Tuesday Exception",
-  "Wednesday Exception",
-  "Thursday Exception",
-  "Friday Exception",
-  "Saturday Exception",
-  "On Call Logic Buyer",
-  "Month-End Exception",
-  "Churn"
+  ...LOGIC_1_PURCHASE_CADENCE,
+  ...LOGIC_2_CUSTOMER_STATE,
+  ...LOGIC_3_PURCHASE_INTENT,
 ];
 
 const evaluatePattern = (customer, pattern) => {
   switch (pattern) {
-    case "UnAssigned":
+    // --- Logic 1: Purchase Cadence ---
+    case "Learning (Always ON)":
       return {
         suggestion: "TURN_ON_TODAY",
         confidence: 100,
-        reason: "Customer is UnAssigned, defaulting to ON.",
+        reason: "Purchase Cadence: Learning (Always ON)",
       };
+    case "Everyday (Always ON)":
     case "Every Day Buyer":
       return everyDayBuyer(customer);
+    case "Alternate Day":
     case "Alternate Day Buyer":
       return alternateDayBuyer(customer);
-    case "Every Sunday Buyer":
-      return weekdayBuyer("Sunday");
-    case "Every Monday Buyer":
-      return weekdayBuyer("Monday");
-    case "Every Tuesday Buyer":
-      return weekdayBuyer("Tuesday");
-    case "Every Wednesday Buyer":
-      return weekdayBuyer("Wednesday");
-    case "Every Thursday Buyer":
-      return weekdayBuyer("Thursday");
-    case "Every Friday Buyer":
-      return weekdayBuyer("Friday");
-    case "Every Saturday Buyer":
-      return weekdayBuyer("Saturday");
+    case "2 Alternate Day":
+      return twoAlternateDayBuyer(customer);
+    case "Last WeekDay":
     case "Last Weekday Buyer":
       return lastWeekdayBuyer(customer);
-    case "Last Alternate Weekday Buyer":
-      return lastAlternateWeekdayBuyer(customer);
-    case "Sunday Exception":
-    case "All Days Except Sunday":
-      return exceptWeekdayBuyer("Sunday");
-    case "Monday Exception":
-    case "All Days Except Monday":
-      return exceptWeekdayBuyer("Monday");
-    case "Tuesday Exception":
-    case "All Days Except Tuesday":
-      return exceptWeekdayBuyer("Tuesday");
-    case "Wednesday Exception":
-    case "All Days Except Wednesday":
-      return exceptWeekdayBuyer("Wednesday");
-    case "Thursday Exception":
-    case "All Days Except Thursday":
-      return exceptWeekdayBuyer("Thursday");
-    case "Friday Exception":
-    case "All Days Except Friday":
-      return exceptWeekdayBuyer("Friday");
-    case "Saturday Exception":
-    case "All Days Except Saturday":
-      return exceptWeekdayBuyer("Saturday");
-    case "On Call Logic Buyer":
-      return onCallLogicBuyer(customer);
-    case "Month-End Exception":
-      return monthEndException(customer);
+    case "No Pattern (Always ON)":
+      return {
+        suggestion: "TURN_ON_TODAY",
+        confidence: 100,
+        reason: "Purchase Cadence: No Pattern (Always ON)",
+      };
+
+    // --- Logic 2: Customer State ---
+    case "Onboarding (Always ON)":
+      return {
+        suggestion: "TURN_ON_TODAY",
+        confidence: 100,
+        reason: "Customer State: Onboarding (Always ON)",
+      };
+    case "Active (Always ON)":
+      return {
+        suggestion: "TURN_ON_TODAY",
+        confidence: 100,
+        reason: "Customer State: Active (Always ON)",
+      };
+    case "At Risk (Always ON)":
+      return {
+        suggestion: "TURN_ON_TODAY",
+        confidence: 100,
+        reason: "Customer State: At Risk (Always ON)",
+      };
+    case "Churn (Always OFF)":
     case "Churn":
       return churnBuyer(customer);
-    default:
+    case "Reactivating (Always ON)":
+      return {
+        suggestion: "TURN_ON_TODAY",
+        confidence: 100,
+        reason: "Customer State: Reactivating (Always ON)",
+      };
+    case "On Call (Always OFF)":
+    case "On Call Logic Buyer":
+      return onCallLogicBuyer(customer);
+    case "Ceased Operations Temporarily (Always OFF)":
       return {
         suggestion: "TURN_OFF_TODAY",
-        confidence: 0,
-        score: 0,
-        reason: "Unknown Buying Pattern selected.",
+        confidence: 100,
+        reason: "Customer State: Ceased Operations Temporarily (Always OFF)",
+      };
+    case "Ceased Operations Permanently (Always OFF)":
+      return {
+        suggestion: "TURN_OFF_TODAY",
+        confidence: 100,
+        reason: "Customer State: Ceased Operations Permanently (Always OFF)",
+      };
+
+    // --- Logic 3: Purchase Intent ---
+    case "Unknown (Always ON)":
+      return {
+        suggestion: "TURN_ON_TODAY",
+        confidence: 100,
+        reason: "Purchase Intent: Unknown (Always ON)",
+      };
+    case "Stable Purchase (Always ON)":
+      return {
+        suggestion: "TURN_ON_TODAY",
+        confidence: 100,
+        reason: "Purchase Intent: Stable Purchase (Always ON)",
+      };
+    case "Growing Purchase (Always On)":
+    case "Growing Purchase (Always ON)":
+      return {
+        suggestion: "TURN_ON_TODAY",
+        confidence: 100,
+        reason: "Purchase Intent: Growing Purchase (Always ON)",
+      };
+    case "Declining Purchase (Always OFF)":
+      return {
+        suggestion: "TURN_OFF_TODAY",
+        confidence: 100,
+        reason: "Purchase Intent: Declining Purchase (Always OFF)",
+      };
+    case "Variable Purchase (Always ON)":
+      return {
+        suggestion: "TURN_ON_TODAY",
+        confidence: 100,
+        reason: "Purchase Intent: Variable Purchase (Always ON)",
+      };
+
+    // Legacy fallbacks
+    case "Last Alternate Weekday Buyer":
+      return lastAlternateWeekdayBuyer(customer);
+    case "Month-End Exception":
+      return monthEndException(customer);
+    case "UnAssigned":
+    default:
+      return {
+        suggestion: "TURN_ON_TODAY",
+        confidence: 100,
+        reason: "Defaulting to ON.",
       };
   }
 };
 
-export const generateDummyAISuggestion = (customer, primaryPattern = "UnAssigned", secondaryPattern = "UnAssigned", tertiaryPattern = "UnAssigned") => {
+export const generateDummyAISuggestion = (
+  customer,
+  primaryPattern = DEFAULT_LOGIC_1,
+  secondaryPattern = DEFAULT_LOGIC_2,
+  tertiaryPattern = DEFAULT_LOGIC_3
+) => {
   const skipConfig = customer?.skipConfig || {};
 
   // RULE: Skip config active (Applies across all patterns)
@@ -368,13 +459,13 @@ export const generateDummyAISuggestion = (customer, primaryPattern = "UnAssigned
     return {
       suggestion: "TURN_ON_TODAY",
       confidence: Math.min(primaryResult.confidence, secondaryResult.confidence, tertiaryResult.confidence),
-      reason: `Primary: ${primaryResult.reason} | Secondary: ${secondaryResult.reason} | Tertiary: ${tertiaryResult.reason}`,
+      reason: `Purchase Cadence: ${primaryResult.reason} | Customer State: ${secondaryResult.reason} | Purchase Intent: ${tertiaryResult.reason}`,
     };
   } else {
     const offLogics = [];
-    if (!isPrimaryOn) offLogics.push(`Primary: ${primaryResult.reason}`);
-    if (!isSecondaryOn) offLogics.push(`Secondary: ${secondaryResult.reason}`);
-    if (!isTertiaryOn) offLogics.push(`Tertiary: ${tertiaryResult.reason}`);
+    if (!isPrimaryOn) offLogics.push(`Purchase Cadence: ${primaryResult.reason}`);
+    if (!isSecondaryOn) offLogics.push(`Customer State: ${secondaryResult.reason}`);
+    if (!isTertiaryOn) offLogics.push(`Purchase Intent: ${tertiaryResult.reason}`);
     return {
       suggestion: "TURN_OFF_TODAY",
       confidence: Math.max(primaryResult.confidence, secondaryResult.confidence, tertiaryResult.confidence),
