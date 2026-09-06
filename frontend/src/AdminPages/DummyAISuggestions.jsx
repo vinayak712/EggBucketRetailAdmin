@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import axios from "axios";
 import { ADMIN_PATH } from "../constant";
 import {
@@ -13,7 +13,16 @@ import {
   normalizeDeliveryGap,
   resolvePeakFrequency,
 } from "../utils/aiSuggestionEngine";
-import { generateDummyAISuggestion, BUYING_PATTERNS } from "../utils/dummyAiSuggestionEngine";
+import {
+  generateDummyAISuggestion,
+  BUYING_PATTERNS,
+  LOGIC_1_PURCHASE_CADENCE,
+  LOGIC_2_CUSTOMER_STATE,
+  LOGIC_3_PURCHASE_INTENT,
+  DEFAULT_LOGIC_1,
+  DEFAULT_LOGIC_2,
+  DEFAULT_LOGIC_3,
+} from "../utils/dummyAiSuggestionEngine";
 import {
   getCachedUserInfo,
   patchCachedUserInfoCustomer,
@@ -107,29 +116,33 @@ const DummyAISuggestions = () => {
     }
   });
 
-  const handlePatternChange = (customerId, newPattern) => {
+  const handlePatternChange = useCallback((customerId, newPattern) => {
     setRowPatterns((prev) => {
       const updated = { ...prev, [customerId]: newPattern };
-      try {
-        localStorage.setItem("dummyAIPatterns", JSON.stringify(updated));
-      } catch {
-        // ignore storage write errors
-      }
+      setTimeout(() => {
+        try {
+          localStorage.setItem("dummyAIPatterns", JSON.stringify(updated));
+        } catch {
+          // ignore storage write errors
+        }
+      }, 0);
       return updated;
     });
-  };
+  }, []);
 
-  const handleSecondaryPatternChange = (customerId, newPattern) => {
+  const handleSecondaryPatternChange = useCallback((customerId, newPattern) => {
     setRowSecondaryPatterns((prev) => {
       const updated = { ...prev, [customerId]: newPattern };
-      try {
-        localStorage.setItem("dummyAISecondaryPatterns", JSON.stringify(updated));
-      } catch {
-        // ignore storage write errors
-      }
+      setTimeout(() => {
+        try {
+          localStorage.setItem("dummyAISecondaryPatterns", JSON.stringify(updated));
+        } catch {
+          // ignore storage write errors
+        }
+      }, 0);
       return updated;
     });
-  };
+  }, []);
 
   const [rowTertiaryPatterns, setRowTertiaryPatterns] = useState(() => {
     try {
@@ -140,17 +153,19 @@ const DummyAISuggestions = () => {
     }
   });
 
-  const handleTertiaryPatternChange = (customerId, newPattern) => {
+  const handleTertiaryPatternChange = useCallback((customerId, newPattern) => {
     setRowTertiaryPatterns((prev) => {
       const updated = { ...prev, [customerId]: newPattern };
-      try {
-        localStorage.setItem("dummyAITertiaryPatterns", JSON.stringify(updated));
-      } catch {
-        // ignore storage write errors
-      }
+      setTimeout(() => {
+        try {
+          localStorage.setItem("dummyAITertiaryPatterns", JSON.stringify(updated));
+        } catch {
+          // ignore storage write errors
+        }
+      }, 0);
       return updated;
     });
-  };
+  }, []);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [updatingSuggestionId, setUpdatingSuggestionId] = useState(null);
@@ -232,7 +247,7 @@ const DummyAISuggestions = () => {
     }
   };
 
-  const processedData = useMemo(() => {
+  const baseCustomerData = useMemo(() => {
     const todayDate = getDateStringInTimeZone(new Date(), "Asia/Kolkata");
 
     const activeCustomers = customers.filter((customer) => {
@@ -240,12 +255,8 @@ const DummyAISuggestions = () => {
       return todayStatus !== "delivered" && todayStatus !== "checked";
     });
 
-    const data = activeCustomers.map((customer) => {
-      const customerPattern = rowPatterns[customer.id] || "UnAssigned";
-      const secondaryPattern = rowSecondaryPatterns[customer.id] || "UnAssigned";
-      const tertiaryPattern = rowTertiaryPatterns[customer.id] || "UnAssigned";
-
-      // Precompute expensive values for sorting & filtering
+    return activeCustomers.map((customer) => {
+      // Precompute expensive values for sorting & filtering once
       const currentCategory = computeCurrentCategory(customer.last8Days);
       const currentCategoryNumber = getCurrentCategoryNumber(currentCategory);
 
@@ -260,7 +271,6 @@ const DummyAISuggestions = () => {
 
       return {
         customer,
-        suggestion: generateDummyAISuggestion(customer, customerPattern, secondaryPattern, tertiaryPattern),
         currentCategory,
         currentCategoryNumber,
         peakFrequencyStr,
@@ -268,6 +278,22 @@ const DummyAISuggestions = () => {
         deliveryGapStr,
         deliveryGapNumber,
         potentialNumber,
+      };
+    });
+  }, [customers]);
+
+  const processedData = useMemo(() => {
+    const data = baseCustomerData.map((item) => {
+      const saved1 = rowPatterns[item.customer.id];
+      const customerPattern = (saved1 && LOGIC_1_PURCHASE_CADENCE.includes(saved1)) ? saved1 : DEFAULT_LOGIC_1;
+      const saved2 = rowSecondaryPatterns[item.customer.id];
+      const secondaryPattern = (saved2 && LOGIC_2_CUSTOMER_STATE.includes(saved2)) ? saved2 : DEFAULT_LOGIC_2;
+      const saved3 = rowTertiaryPatterns[item.customer.id];
+      const tertiaryPattern = (saved3 && LOGIC_3_PURCHASE_INTENT.includes(saved3)) ? saved3 : DEFAULT_LOGIC_3;
+
+      return {
+        ...item,
+        suggestion: generateDummyAISuggestion(item.customer, customerPattern, secondaryPattern, tertiaryPattern),
       };
     });
 
@@ -279,7 +305,7 @@ const DummyAISuggestions = () => {
     });
 
     return data;
-  }, [customers, rowPatterns, rowSecondaryPatterns, rowTertiaryPatterns]);
+  }, [baseCustomerData, rowPatterns, rowSecondaryPatterns, rowTertiaryPatterns]);
 
   const filteredData = useMemo(() => {
     return processedData.filter((item) => {
@@ -331,12 +357,17 @@ const DummyAISuggestions = () => {
         String(businessTypeFilter).trim().toLowerCase();
 
       // Pattern filter (Logic Sets)
-      const customerPattern = rowPatterns[item.customer.id] || "UnAssigned";
-      const secondaryPattern = rowSecondaryPatterns[item.customer.id] || "UnAssigned";
-      const tertiaryPattern = rowTertiaryPatterns[item.customer.id] || "UnAssigned";
+      const saved1 = rowPatterns[item.customer.id];
+      const customerPattern = (saved1 && LOGIC_1_PURCHASE_CADENCE.includes(saved1)) ? saved1 : DEFAULT_LOGIC_1;
+      const saved2 = rowSecondaryPatterns[item.customer.id];
+      const secondaryPattern = (saved2 && LOGIC_2_CUSTOMER_STATE.includes(saved2)) ? saved2 : DEFAULT_LOGIC_2;
+      const saved3 = rowTertiaryPatterns[item.customer.id];
+      const tertiaryPattern = (saved3 && LOGIC_3_PURCHASE_INTENT.includes(saved3)) ? saved3 : DEFAULT_LOGIC_3;
       const matchesPattern =
         patternFilter === "ALL" ||
-        (customerPattern === patternFilter && secondaryPattern === patternFilter && tertiaryPattern === patternFilter);
+        customerPattern === patternFilter ||
+        secondaryPattern === patternFilter ||
+        tertiaryPattern === patternFilter;
 
       // Category filter (All Current Category, D0-D7, D1 to D3, D5 to D7)
       const currentCategory = item.currentCategory;
@@ -689,11 +720,27 @@ const DummyAISuggestions = () => {
               className="border border-gray-300 px-3 py-1.5 rounded-lg text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
             >
               <option value="ALL">All Logic Sets</option>
-              {BUYING_PATTERNS.map((pattern) => (
-                <option key={pattern} value={pattern}>
-                  {pattern}
-                </option>
-              ))}
+              <optgroup label="Purchase Cadence">
+                {LOGIC_1_PURCHASE_CADENCE.map((pattern) => (
+                  <option key={pattern} value={pattern}>
+                    {pattern}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Customer State">
+                {LOGIC_2_CUSTOMER_STATE.map((pattern) => (
+                  <option key={pattern} value={pattern}>
+                    {pattern}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Purchase Intent">
+                {LOGIC_3_PURCHASE_INTENT.map((pattern) => (
+                  <option key={pattern} value={pattern}>
+                    {pattern}
+                  </option>
+                ))}
+              </optgroup>
             </select>
 
 

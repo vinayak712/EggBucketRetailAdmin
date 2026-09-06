@@ -4,7 +4,15 @@ import {
   computeCurrentCategory,
   getTodayEffectiveStatus,
 } from "../utils/aiSuggestionEngine";
-import { BUYING_PATTERNS } from "../utils/dummyAiSuggestionEngine";
+import {
+  BUYING_PATTERNS,
+  LOGIC_1_PURCHASE_CADENCE,
+  LOGIC_2_CUSTOMER_STATE,
+  LOGIC_3_PURCHASE_INTENT,
+  DEFAULT_LOGIC_1,
+  DEFAULT_LOGIC_2,
+  DEFAULT_LOGIC_3,
+} from "../utils/dummyAiSuggestionEngine";
 import ExecutionCalendarModal from "./ExecutionCalendarModal";
 
 const getSuggestionConfig = (suggestion, reason, score) => {
@@ -259,11 +267,11 @@ const DummyAISuggestionRow = ({
   suggestionData,
   onApplySuggestion,
   isUpdating = false,
-  customerPattern = "UnAssigned",
+  customerPattern = DEFAULT_LOGIC_1,
   onPatternChange,
-  secondaryPattern = "UnAssigned",
+  secondaryPattern = DEFAULT_LOGIC_2,
   onSecondaryPatternChange,
-  tertiaryPattern = "UnAssigned",
+  tertiaryPattern = DEFAULT_LOGIC_3,
   onTertiaryPatternChange,
   updatingScheduleId,
   onUpdateSchedule
@@ -397,12 +405,12 @@ const DummyAISuggestionRow = ({
 
       <td className="px-1.5 py-2">
         <select
-          value={customerPattern}
+          value={customerPattern || DEFAULT_LOGIC_1}
           onChange={(e) => onPatternChange(customer.id, e.target.value)}
           className="border border-gray-300 px-1 py-0.5 rounded text-xs font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white shadow-sm appearance-none cursor-pointer hover:bg-gray-50 w-[120px] overflow-hidden text-ellipsis whitespace-nowrap"
-          title={customerPattern}
+          title={customerPattern || DEFAULT_LOGIC_1}
         >
-          {BUYING_PATTERNS.map(pattern => (
+          {LOGIC_1_PURCHASE_CADENCE.map(pattern => (
             <option key={pattern} value={pattern}>{pattern}</option>
           ))}
         </select>
@@ -410,12 +418,12 @@ const DummyAISuggestionRow = ({
 
       <td className="px-1.5 py-2">
         <select
-          value={secondaryPattern}
+          value={secondaryPattern || DEFAULT_LOGIC_2}
           onChange={(e) => onSecondaryPatternChange(customer.id, e.target.value)}
           className="border border-gray-300 px-1 py-0.5 rounded text-xs font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white shadow-sm appearance-none cursor-pointer hover:bg-gray-50 w-[120px] overflow-hidden text-ellipsis whitespace-nowrap"
-          title={secondaryPattern}
+          title={secondaryPattern || DEFAULT_LOGIC_2}
         >
-          {BUYING_PATTERNS.map(pattern => (
+          {LOGIC_2_CUSTOMER_STATE.map(pattern => (
             <option key={`sec-${pattern}`} value={pattern}>{pattern}</option>
           ))}
         </select>
@@ -423,12 +431,12 @@ const DummyAISuggestionRow = ({
 
       <td className="px-1.5 py-2">
         <select
-          value={tertiaryPattern}
+          value={tertiaryPattern || DEFAULT_LOGIC_3}
           onChange={(e) => onTertiaryPatternChange(customer.id, e.target.value)}
           className="border border-gray-300 px-1 py-0.5 rounded text-xs font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white shadow-sm appearance-none cursor-pointer hover:bg-gray-50 w-[120px] overflow-hidden text-ellipsis whitespace-nowrap"
-          title={tertiaryPattern}
+          title={tertiaryPattern || DEFAULT_LOGIC_3}
         >
-          {BUYING_PATTERNS.map(pattern => (
+          {LOGIC_3_PURCHASE_INTENT.map(pattern => (
             <option key={`ter-${pattern}`} value={pattern}>{pattern}</option>
           ))}
         </select>
@@ -497,4 +505,4 @@ const DummyAISuggestionRow = ({
   );
 };
 
-export default DummyAISuggestionRow;
+export default React.memo(DummyAISuggestionRow);
