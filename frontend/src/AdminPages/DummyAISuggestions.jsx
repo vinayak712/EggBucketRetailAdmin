@@ -22,6 +22,7 @@ import {
   DEFAULT_LOGIC_1,
   DEFAULT_LOGIC_2,
   DEFAULT_LOGIC_3,
+  resolveCleanPattern,
 } from "../utils/dummyAiSuggestionEngine";
 import {
   getCachedUserInfo,
@@ -270,7 +271,11 @@ const DummyAISuggestions = () => {
       const potentialNumber = getPotentialNumber(customer.potential);
 
       return {
-        customer,
+        customer: {
+          ...customer,
+          deliveryGapStr,
+          deliveryGapNumber,
+        },
         currentCategory,
         currentCategoryNumber,
         peakFrequencyStr,
@@ -285,11 +290,11 @@ const DummyAISuggestions = () => {
   const processedData = useMemo(() => {
     const data = baseCustomerData.map((item) => {
       const saved1 = rowPatterns[item.customer.id];
-      const customerPattern = (saved1 && LOGIC_1_PURCHASE_CADENCE.includes(saved1)) ? saved1 : DEFAULT_LOGIC_1;
+      const customerPattern = resolveCleanPattern(saved1, LOGIC_1_PURCHASE_CADENCE, DEFAULT_LOGIC_1);
       const saved2 = rowSecondaryPatterns[item.customer.id];
-      const secondaryPattern = (saved2 && LOGIC_2_CUSTOMER_STATE.includes(saved2)) ? saved2 : DEFAULT_LOGIC_2;
+      const secondaryPattern = resolveCleanPattern(saved2, LOGIC_2_CUSTOMER_STATE, DEFAULT_LOGIC_2);
       const saved3 = rowTertiaryPatterns[item.customer.id];
-      const tertiaryPattern = (saved3 && LOGIC_3_PURCHASE_INTENT.includes(saved3)) ? saved3 : DEFAULT_LOGIC_3;
+      const tertiaryPattern = resolveCleanPattern(saved3, LOGIC_3_PURCHASE_INTENT, DEFAULT_LOGIC_3);
 
       return {
         ...item,
@@ -358,11 +363,11 @@ const DummyAISuggestions = () => {
 
       // Pattern filter (Logic Sets)
       const saved1 = rowPatterns[item.customer.id];
-      const customerPattern = (saved1 && LOGIC_1_PURCHASE_CADENCE.includes(saved1)) ? saved1 : DEFAULT_LOGIC_1;
+      const customerPattern = resolveCleanPattern(saved1, LOGIC_1_PURCHASE_CADENCE, DEFAULT_LOGIC_1);
       const saved2 = rowSecondaryPatterns[item.customer.id];
-      const secondaryPattern = (saved2 && LOGIC_2_CUSTOMER_STATE.includes(saved2)) ? saved2 : DEFAULT_LOGIC_2;
+      const secondaryPattern = resolveCleanPattern(saved2, LOGIC_2_CUSTOMER_STATE, DEFAULT_LOGIC_2);
       const saved3 = rowTertiaryPatterns[item.customer.id];
-      const tertiaryPattern = (saved3 && LOGIC_3_PURCHASE_INTENT.includes(saved3)) ? saved3 : DEFAULT_LOGIC_3;
+      const tertiaryPattern = resolveCleanPattern(saved3, LOGIC_3_PURCHASE_INTENT, DEFAULT_LOGIC_3);
       const matchesPattern =
         patternFilter === "ALL" ||
         customerPattern === patternFilter ||

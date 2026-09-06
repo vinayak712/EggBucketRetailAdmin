@@ -4,6 +4,10 @@ import {
   DEFAULT_LOGIC_1,
   DEFAULT_LOGIC_2,
   DEFAULT_LOGIC_3,
+  LOGIC_1_PURCHASE_CADENCE,
+  LOGIC_2_CUSTOMER_STATE,
+  LOGIC_3_PURCHASE_INTENT,
+  resolveCleanPattern,
 } from "../utils/dummyAiSuggestionEngine";
 
 const DummyAISuggestionTable = ({ data, loading, onApplySuggestion, updatingSuggestionId, rowPatterns, onPatternChange, rowSecondaryPatterns, onSecondaryPatternChange, rowTertiaryPatterns, onTertiaryPatternChange, updatingScheduleId, onUpdateSchedule }) => {
@@ -94,11 +98,11 @@ const DummyAISuggestionTable = ({ data, loading, onApplySuggestion, updatingSugg
                 suggestionData={item.suggestion}
                 onApplySuggestion={onApplySuggestion}
                 isUpdating={updatingSuggestionId === item.customer.id}
-                customerPattern={rowPatterns[item.customer.id] || DEFAULT_LOGIC_1}
+                customerPattern={resolveCleanPattern(rowPatterns[item.customer.id], LOGIC_1_PURCHASE_CADENCE, DEFAULT_LOGIC_1)}
                 onPatternChange={onPatternChange}
-                secondaryPattern={rowSecondaryPatterns[item.customer.id] || DEFAULT_LOGIC_2}
+                secondaryPattern={resolveCleanPattern(rowSecondaryPatterns[item.customer.id], LOGIC_2_CUSTOMER_STATE, DEFAULT_LOGIC_2)}
                 onSecondaryPatternChange={onSecondaryPatternChange}
-                tertiaryPattern={rowTertiaryPatterns[item.customer.id] || DEFAULT_LOGIC_3}
+                tertiaryPattern={resolveCleanPattern(rowTertiaryPatterns[item.customer.id], LOGIC_3_PURCHASE_INTENT, DEFAULT_LOGIC_3)}
                 onTertiaryPatternChange={onTertiaryPatternChange}
                 updatingScheduleId={updatingScheduleId}
                 onUpdateSchedule={onUpdateSchedule}

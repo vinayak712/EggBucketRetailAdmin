@@ -1,4 +1,9 @@
-import { getDateStringInTimeZone } from "./aiSuggestionEngine";
+import {
+  getDateStringInTimeZone,
+  computeDeliveryGap,
+  normalizeDeliveryGap,
+  getDeliveryGapNumber,
+} from "./aiSuggestionEngine.js";
 
 // --- Helper Functions ---
 
@@ -262,6 +267,48 @@ const twoAlternateDayBuyer = (customer) => {
   };
 };
 
+const resolveCustomerDeliveryGapNumber = (customer) => {
+  if (typeof customer?.deliveryGapNumber === "number") {
+    return customer.deliveryGapNumber;
+  }
+  const todayDate = getDateStringInTimeZone(new Date(), "Asia/Kolkata");
+  const rawDeliveryGap = computeDeliveryGap(customer?.last8Days, todayDate);
+  const deliveryGapStr = normalizeDeliveryGap(customer?.deliveryGap || rawDeliveryGap);
+  return getDeliveryGapNumber(deliveryGapStr);
+};
+
+const weeklyBuyer = (customer) => {
+  const gap = resolveCustomerDeliveryGapNumber(customer);
+  if (gap > 5) {
+    return {
+      suggestion: "TURN_ON_TODAY",
+      confidence: 100,
+      reason: `Delivery gap is G${gap} (> G5), send today.`,
+    };
+  }
+  return {
+    suggestion: "TURN_OFF_TODAY",
+    confidence: 100,
+    reason: `Delivery gap is G${gap} (<= G5), skip today.`,
+  };
+};
+
+const fortnightBuyer = (customer) => {
+  const gap = resolveCustomerDeliveryGapNumber(customer);
+  if (gap > 10) {
+    return {
+      suggestion: "TURN_ON_TODAY",
+      confidence: 100,
+      reason: `Delivery gap is G${gap} (> G10), send today.`,
+    };
+  }
+  return {
+    suggestion: "TURN_OFF_TODAY",
+    confidence: 100,
+    reason: `Delivery gap is G${gap} (<= G10), skip today.`,
+  };
+};
+
 const churnBuyer = (customer) => {
   return {
     suggestion: "TURN_OFF_TODAY",
@@ -273,31 +320,34 @@ const churnBuyer = (customer) => {
 // --- Main Engine Logic Lists ---
 
 export const LOGIC_1_PURCHASE_CADENCE = [
-  "Learning (Always ON)",
-  "Everyday (Always ON)",
+  "Learning",
+  "Everyday",
   "Alternate Day",
   "2 Alternate Day",
-  "Last WeekDay",
-  "No Pattern (Always ON)",
+  "Weekly",
+  "For Night",
+  "No Pattern",
 ];
 
 export const LOGIC_2_CUSTOMER_STATE = [
-  "Onboarding (Always ON)",
-  "Active (Always ON)",
-  "At Risk (Always ON)",
-  "Churn (Always OFF)",
-  "Reactivating (Always ON)",
-  "On Call (Always OFF)",
-  "Ceased Operations Temporarily (Always OFF)",
-  "Ceased Operations Permanently (Always OFF)",
+  "Onboarding",
+  "Active",
+  "At Risk",
+  "Reactivating",
+  "Need Credit",
+  "Pricing Issue",
+  "Other Vendor",
+  "On Call",
+  "Ceased Operations Temporarily",
+  "Ceased Operations Permanently",
 ];
 
 export const LOGIC_3_PURCHASE_INTENT = [
-  "Unknown (Always ON)",
-  "Stable Purchase (Always ON)",
-  "Growing Purchase (Always On)",
-  "Declining Purchase (Always OFF)",
-  "Variable Purchase (Always ON)",
+  "Unknown",
+  "Stable Purchase",
+  "Growing Purchase",
+  "Declining Purchase",
+  "Variable Purchase",
 ];
 
 export const DEFAULT_LOGIC_1 = LOGIC_1_PURCHASE_CADENCE[0];
@@ -310,15 +360,44 @@ export const BUYING_PATTERNS = [
   ...LOGIC_3_PURCHASE_INTENT,
 ];
 
+export const resolveCleanPattern = (saved, validList, defaultVal) => {
+  if (!saved) return defaultVal;
+  if (validList.includes(saved)) return saved;
+  const stripped = String(saved).replace(/\s*\(.*?\)/g, "").trim();
+  if (validList.includes(stripped)) return stripped;
+
+  // Case-insensitive match
+  const lower = stripped.toLowerCase();
+  const matched = validList.find((item) => item.toLowerCase() === lower);
+  if (matched) return matched;
+
+  // For Night aliases
+  if (
+    validList.includes("For Night") &&
+    ["fortnight", "fort night", "for night", "fort-night"].includes(lower)
+  ) {
+    return "For Night";
+  }
+
+  // Everyday aliases
+  if (validList.includes("Everyday") && lower === "every day") {
+    return "Everyday";
+  }
+
+  return defaultVal;
+};
+
 const evaluatePattern = (customer, pattern) => {
   switch (pattern) {
     // --- Logic 1: Purchase Cadence ---
+    case "Learning":
     case "Learning (Always ON)":
       return {
         suggestion: "TURN_ON_TODAY",
         confidence: 100,
         reason: "Purchase Cadence: Learning (Always ON)",
       };
+    case "Everyday":
     case "Everyday (Always ON)":
     case "Every Day Buyer":
       return everyDayBuyer(customer);
@@ -327,9 +406,23 @@ const evaluatePattern = (customer, pattern) => {
       return alternateDayBuyer(customer);
     case "2 Alternate Day":
       return twoAlternateDayBuyer(customer);
-    case "Last WeekDay":
-    case "Last Weekday Buyer":
-      return lastWeekdayBuyer(customer);
+    case "Weekly":
+    case "Weekly (Delivery Gap greater then G5)":
+    case "Weekly ( Delivery Gap greater then G5)":
+    case "Weekly (Delivery Gap greater than G5)":
+    case "Weekly (Delivery Gap > G5)":
+      return weeklyBuyer(customer);
+    case "For Night":
+    case "Fort Night":
+    case "FortNight":
+    case "Fortnight":
+    case "FortNight (Delivery Gap greater then G10)":
+    case "FortNight ( Delivery Gap greater then G10)":
+    case "FortNight (Delivery Gap greater than G10)":
+    case "FortNight (Delivery Gap > G10)":
+    case "For Night (Delivery Gap greater then G10)":
+      return fortnightBuyer(customer);
+    case "No Pattern":
     case "No Pattern (Always ON)":
       return {
         suggestion: "TURN_ON_TODAY",
@@ -338,42 +431,68 @@ const evaluatePattern = (customer, pattern) => {
       };
 
     // --- Logic 2: Customer State ---
+    case "Onboarding":
     case "Onboarding (Always ON)":
       return {
         suggestion: "TURN_ON_TODAY",
         confidence: 100,
         reason: "Customer State: Onboarding (Always ON)",
       };
+    case "Active":
     case "Active (Always ON)":
       return {
         suggestion: "TURN_ON_TODAY",
         confidence: 100,
         reason: "Customer State: Active (Always ON)",
       };
+    case "At Risk":
     case "At Risk (Always ON)":
       return {
         suggestion: "TURN_ON_TODAY",
         confidence: 100,
         reason: "Customer State: At Risk (Always ON)",
       };
-    case "Churn (Always OFF)":
-    case "Churn":
-      return churnBuyer(customer);
+    case "Reactivating":
     case "Reactivating (Always ON)":
       return {
         suggestion: "TURN_ON_TODAY",
         confidence: 100,
         reason: "Customer State: Reactivating (Always ON)",
       };
+    case "Need Credit":
+    case "Need Credit (Always OFF)":
+      return {
+        suggestion: "TURN_OFF_TODAY",
+        confidence: 100,
+        reason: "Customer State: Need Credit (Always OFF)",
+      };
+    case "Pricing Issue":
+    case "Pricing Issue (Always ON)":
+    case "Pricing Issue(Always ON)":
+      return {
+        suggestion: "TURN_ON_TODAY",
+        confidence: 100,
+        reason: "Customer State: Pricing Issue (Always ON)",
+      };
+    case "Other Vendor":
+    case "Other Vendor (Always OFF)":
+      return {
+        suggestion: "TURN_OFF_TODAY",
+        confidence: 100,
+        reason: "Customer State: Other Vendor (Always OFF)",
+      };
+    case "On Call":
     case "On Call (Always OFF)":
     case "On Call Logic Buyer":
       return onCallLogicBuyer(customer);
+    case "Ceased Operations Temporarily":
     case "Ceased Operations Temporarily (Always OFF)":
       return {
         suggestion: "TURN_OFF_TODAY",
         confidence: 100,
         reason: "Customer State: Ceased Operations Temporarily (Always OFF)",
       };
+    case "Ceased Operations Permanently":
     case "Ceased Operations Permanently (Always OFF)":
       return {
         suggestion: "TURN_OFF_TODAY",
@@ -382,18 +501,21 @@ const evaluatePattern = (customer, pattern) => {
       };
 
     // --- Logic 3: Purchase Intent ---
+    case "Unknown":
     case "Unknown (Always ON)":
       return {
         suggestion: "TURN_ON_TODAY",
         confidence: 100,
         reason: "Purchase Intent: Unknown (Always ON)",
       };
+    case "Stable Purchase":
     case "Stable Purchase (Always ON)":
       return {
         suggestion: "TURN_ON_TODAY",
         confidence: 100,
         reason: "Purchase Intent: Stable Purchase (Always ON)",
       };
+    case "Growing Purchase":
     case "Growing Purchase (Always On)":
     case "Growing Purchase (Always ON)":
       return {
@@ -401,12 +523,14 @@ const evaluatePattern = (customer, pattern) => {
         confidence: 100,
         reason: "Purchase Intent: Growing Purchase (Always ON)",
       };
+    case "Declining Purchase":
     case "Declining Purchase (Always OFF)":
       return {
         suggestion: "TURN_OFF_TODAY",
         confidence: 100,
         reason: "Purchase Intent: Declining Purchase (Always OFF)",
       };
+    case "Variable Purchase":
     case "Variable Purchase (Always ON)":
       return {
         suggestion: "TURN_ON_TODAY",
@@ -415,6 +539,12 @@ const evaluatePattern = (customer, pattern) => {
       };
 
     // Legacy fallbacks
+    case "Last WeekDay":
+    case "Last Weekday Buyer":
+      return lastWeekdayBuyer(customer);
+    case "Churn (Always OFF)":
+    case "Churn":
+      return churnBuyer(customer);
     case "Last Alternate Weekday Buyer":
       return lastAlternateWeekdayBuyer(customer);
     case "Month-End Exception":
